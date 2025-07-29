@@ -1,83 +1,137 @@
-VHDL Neural Network Accelerator
-This project is a hardware accelerator for a small neural network, built entirely in VHDL. It's a complete, learning-capable processor designed to be run on an FPGA.
+# 🤖 VHDL Neural Network Accelerator (Training + Inference)
 
-This design demonstrates how machine learning algorithms can be implemented directly in hardware, which can lead to significant gains in performance and efficiency compared to running them on a standard CPU.
+This project is a **hardware accelerator for a small neural network**, built entirely in **VHDL**. It's a complete, **learning-capable processor** designed to be run on an **FPGA**.
 
-🚀 Key Features
-Complete Neural Network: Implements a 3-4-2 fully connected network (3 inputs, a hidden layer with 4 neurons, and 2 outputs).
+It demonstrates how machine learning algorithms can be implemented **directly in hardware**, offering significant gains in performance and efficiency over traditional CPU-based execution.
 
-Forward Propagation: Can take an input and make a prediction (inference) using its current weights.
+---
 
-Backward Propagation: Can learn from its mistakes. It has a full training cycle that calculates the error and updates its weights using gradient descent.
+## 🚀 Key Features
 
-Modular Hardware Design: The project is built from clean, reusable VHDL modules for each part of the neural network.
+- **Complete Neural Network**  
+  Implements a **3-4-2 fully connected network**:  
+  - 3 input neurons  
+  - 1 hidden layer with 4 neurons  
+  - 2 output neurons
 
-FSM Control: A central Finite-State Machine acts as the "brain," managing the complex, multi-step calculations for both making predictions and learning.
+- **Forward Propagation**  
+  Accepts input and produces a prediction (inference) using current weights.
 
-🛠️ The Hardware Modules
-The accelerator is built from several specialized VHDL components that work together.
+- **Backward Propagation (Learning)**  
+  Fully supports **training** using **error calculation** and **gradient descent** to update weights.
 
-1. nn_controller.vhd
-This is the main controller and the most important part of the design. It contains the state machine that tells all the other modules what to do and when to do it, coordinating the entire forward and backward propagation process.
+- **Modular Hardware Design**  
+  Composed of **clean, reusable VHDL modules** for each function of the neural network.
 
-2. mac_unit.vhd
-This is the math core of the project. The Multiply-Accumulate unit does the heavy lifting, performing the (input * weight) + bias calculations that are fundamental to how neurons work.
+- **FSM Control**  
+  A centralized **Finite-State Machine** (FSM) coordinates all steps in both inference and learning phases.
 
-3. relu_activation.vhd
-This module applies the ReLU (Rectified Linear Unit) activation function. After the mac_unit calculates a result, this module applies the non-linear max(0, input) function. This step is essential for allowing the network to learn complex, non-linear patterns.
+---
 
-4. error_calculator.vhd
-This is the first step of the learning process. It figures out how "wrong" a neuron's prediction was by comparing the actual output to the correct (target) output. It also cleverly uses the derivative of the activation function, a key part of the backpropagation algorithm.
+## 🛠️ Hardware Modules
 
-5. weight_updater.vhd
-This is where the learning actually happens. It takes the error calculated by the error_calculator and uses it to make a small adjustment to the neuron's weight, following the gradient descent rule: new_weight = old_weight - (error * learning_rate).
+The accelerator is composed of several specialized VHDL components working together:
 
-🏗️ How It Works: The Dataflow
-The controller's state machine is designed to handle the step-by-step calculations needed for the neural network.
+### 1. `nn_controller.vhd`
+- The **main controller** and central processing unit.
+- Contains the **FSM** that orchestrates both the **forward** and **backward** passes.
+- Manages signals, data movement, and activation of submodules.
 
-Forward Pass (Making a Prediction)
-S_IDLE: Waits for the start signal.
+### 2. `mac_unit.vhd`
+- The **math core** of the neural network.
+- Performs the Multiply-Accumulate operation:  
+  \[(input × weight) + bias\]  
+  which is fundamental to each neuron's computation.
 
-S_FETCH_X: Grabs the input data.
+### 3. `relu_activation.vhd`
+- Applies the **ReLU activation function**:  
+  \[output = max(0, input)\]
+- Introduces non-linearity, allowing the network to model complex relationships.
 
-S_MAC_H_LOOP: Loops for 3 clock cycles to calculate the results for the hidden layer's 4 neurons.
+### 4. `error_calculator.vhd`
+- Computes the error between the predicted output and the target (actual) output.
+- Also calculates the **derivative of the activation function**, which is crucial for gradient-based learning.
 
-S_ACT_H: Applies the ReLU function to the hidden layer.
+### 5. `weight_updater.vhd`
+- Responsible for **adjusting weights** using the gradient descent formula:  
+  \[new\_weight = old\_weight - (error × learning\_rate)\]
+- Receives error signals and updates weights accordingly.
 
-S_MAC_Y_LOOP: Loops for 4 clock cycles to calculate the results for the output layer's 2 neurons.
+---
 
-S_ACT_Y: Applies the final ReLU function.
+## 🏗️ Architecture and Dataflow
 
-S_WRITE_Y: Puts the final prediction on the output_data bus and signals that it's valid.
+The system is governed by an FSM in the `nn_controller` that follows these phases:
 
-Backward Pass (Learning)
-If the train_mode signal is active, the controller doesn't stop. It seamlessly continues to:
+### 🔁 Forward Pass (Inference)
 
-S_CALC_ERROR: Activates the error_calculator modules to figure out the error for the output neurons.
+| State        | Description |
+|--------------|-------------|
+| `S_IDLE`     | Waits for the `start` signal. |
+| `S_FETCH_X`  | Fetches the 3-byte input vector. |
+| `S_MAC_H_LOOP` | Loops for 3 cycles to compute the hidden layer neuron values. |
+| `S_ACT_H`    | Applies the ReLU function to hidden layer results. |
+| `S_MAC_Y_LOOP` | Loops for 4 cycles to compute output neuron values. |
+| `S_ACT_Y`    | Applies ReLU to output layer. |
+| `S_WRITE_Y`  | Outputs the 2-byte prediction on `output_data` and signals `valid_out`. |
 
-S_UPDATE_WEIGHTS: Activates the weight_updater modules. They use the calculated error to compute the new, slightly improved weights. The controller then updates its internal weights and signals that the training cycle is complete.
+### 🧠 Backward Pass (Learning)
 
-The FSM then goes back to S_IDLE, ready for the next task.
+If `train_mode` is enabled, the FSM continues into training mode:
 
-💡 How to Simulate
-Set Top-Level Entity: In Quartus, make sure your top-level entity for synthesis is nn_controller.
+| State            | Description |
+|------------------|-------------|
+| `S_CALC_ERROR`   | Invokes `error_calculator` to compute output error. |
+| `S_UPDATE_WEIGHTS` | Activates `weight_updater` to adjust weights based on error and learning rate. |
+| _Return to_ `S_IDLE` | Training cycle complete; ready for next operation. |
 
-Set Testbench: For simulation, use the nn_controller_tb.vhd testbench. It's already set up to run a full training cycle.
+---
 
-Run Simulation:
+## 💡 How to Simulate
 
-First, clean the project (Project -> Clean).
+### ✅ Set Top-Level Entity
 
-Then, run Analysis & Synthesis.
+In **Intel Quartus**, ensure your top-level synthesis entity is:  
 
-Finally, launch the simulation (Tools -> Run Simulation Tool -> RTL Simulation).
+### 🧪 Set Testbench
 
-Check the Waveform: In Modelsim, add the internal signals from the uut to the wave window. You'll want to see:
+Use the provided `nn_controller_tb.vhd` testbench, which is already configured to:
 
-current_state: To watch the FSM move through all the states.
+- Stimulate a **full training cycle**
+- Provide:
+  - `clk` (clock)
+  - `rst` (reset)
+  - `start`
+  - `input_data`
+  - `target_output`
+  - `train_mode` flag
 
-h_mac_counter & y_mac_counter: To make sure the loops are working.
+### ▶️ Run Simulation
 
-output_data: To see the network's final prediction.
+1. **Clean the project**  
+   `Project → Clean`
 
-W2: To see the weight values physically change after the S_UPDATE_WEIGHTS state, which is the ultimate proof that your network is learning!
+2. **Run Analysis & Synthesis**  
+   `Processing → Start Compilation`
+
+3. **Launch Simulation**  
+   `Tools → Run Simulation Tool → RTL Simulation`
+
+4. **Check Waveform in ModelSim**  
+   Add internal signals from the `uut` instance to the wave window. Important signals to observe:
+
+   - `current_state`: Track FSM progression through all forward and backward states.
+   - `h_mac_counter` and `y_mac_counter`: Ensure MAC loops execute correctly.
+   - `output_data`: See final predictions after each forward pass.
+   - `W2`: Watch weights change in real time during `S_UPDATE_WEIGHTS` — proof of **hardware learning**.
+
+---
+
+## 📂 Project File Structure
+
+├── nn_controller.vhd # Main FSM and orchestrator
+├── mac_unit.vhd # Multiply-Accumulate logic
+├── relu_activation.vhd # ReLU non-linearity
+├── error_calculator.vhd # Error and gradient calculation
+├── weight_updater.vhd # Weight update via gradient descent
+├── nn_controller_tb.vhd # Testbench for simulation and training
