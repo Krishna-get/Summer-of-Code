@@ -51,4 +51,44 @@ The FSM then returns to `S_IDLE`.
 
 ### 1. Set Top-Level Entity
 In **Quartus**, ensure the top-level entity for synthesis is:
+nn_controller
 
+
+### 2. Set Testbench
+For simulation, use a testbench that provides the following signals:
+
+- `clk`
+- `rst`
+- `start`
+- `input_data`
+
+The original `nn_controller_tb.vhd` is suitable for this purpose.
+
+### 3. Run Simulation
+
+Follow these steps to simulate in **ModelSim**:
+
+- **Clean the project**  
+  `Project → Clean`
+
+- **Run Analysis & Synthesis**  
+  `Processing → Start Compilation`
+
+- **Launch RTL Simulation**  
+  `Tools → Run Simulation Tool → RTL Simulation`
+
+- **Analyze Waveform**  
+  In ModelSim, add the internal signals of the `uut` instance to the waveform window. Key signals to observe:
+
+  - `current_state`: To see the FSM correctly stepping through the states.
+  - `h_mac_counter` and `y_mac_counter`: To verify that the loops are executing for the correct number of cycles.
+  - `output_data` and `valid_out`: To see the final prediction and the signal indicating it is ready.
+
+---
+
+## 📂 Project File Structure
+
+├── nn_controller.vhd # Main FSM and data controller
+├── mac_unit.vhd # Multiply-Accumulate logic
+├── relu_activation.vhd # ReLU activation logic
+├── nn_controller_tb.vhd # Testbench for simulation
