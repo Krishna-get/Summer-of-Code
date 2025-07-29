@@ -1,37 +1,54 @@
-# Neural Network Hardware Accelerator
+# ⚡ VHDL Neural Network Accelerator (Inference-Only)
 
-## Project Overview
-This repository implements a simple fully connected neural network inference engine in VHDL. It supports a 3-input → 4-hidden → 2-output architecture using 8-bit signed data. All weights and biases are preloaded as constants; only forward-propagation (inference) is implemented.
+This project is a hardware accelerator for performing high-speed inference (forward propagation) with a small, fully connected neural network. The design is implemented entirely in VHDL and is optimized for synthesis on an FPGA.
 
-## Directory Structure
+The core purpose of this design is to take a pre-trained neural network with fixed weights and biases and use it to make predictions as quickly and efficiently as possible in hardware. This version does not include any training or learning capabilities.
 
-## Prerequisites
-- Intel Quartus Prime Lite Edition 20.1 or later  
-- ModelSim Intel FPGA Edition  
-- Basic familiarity with VHDL, FSM design, and FPGA toolflows
+---
 
-## Building & Synthesizing
-1. **Create Quartus Project**  
-   - Directory: `neural_network_project/syn/`  
-   - Project Name: `neural_network_fpga`  
-   - Top-Level Entity: `nn_controller`  
-2. **Add RTL Sources** (use relative paths from `syn/`):  
-3. **(Optional)** Speed up builds by adding to `.qsf`:  
-4. Run **Processing → Start Analysis & Synthesis** in Quartus.
+## 🚀 Features
 
-## Running Simulation
-1. In Quartus, select **Tools → Run Simulation Tool → RTL Simulation**.  
-2. Compile in this order:  
-3. In ModelSim, add key signals to the waveform:  
-4. Apply reset, wait for `ready = '1'`, pulse `start`, and verify that `output_data` updates to non-zero values when `valid_out` asserts.
+- **High-Speed Inference**: Designed specifically for the forward pass, making it fast and efficient.
+- **Fully Connected Network**: Implements a 3-4-2 network structure (3 inputs, 1 hidden layer with 4 neurons, 2 outputs).
+- **Fixed Weights**: Uses constant weights and biases, representing a model that has already been trained offline.
+- **Modular Design**: Built from clean, reusable VHDL modules for core hardware operations.
+- **Architecturally Correct FSM**: A robust Finite-State Machine correctly orchestrates the multi-cycle dot product calculations required for each layer.
 
-## Customizing Weights & Biases
-Replace the example constant arrays in `nn_controller.vhd` with your trained network’s weight/bias values. Ensure all inputs, weights, and biases are non-zero to avoid synthesis optimizations that tie signals to GND.
+---
 
-## Best Practices
-- Drive `start` only when `ready = '1'` to avoid missed triggers.  
-- Verify per-module functionality via component-level testbenches (MAC and ReLU) before system-level tests.  
-- After synthesis, use the RTL and Technology Map viewers in Quartus to confirm that weight/bias constants and input bits appear in the netlist.
+## 🛠️ Hardware Modules
 
-## Contact & Support
-For questions or issues, please reach out to your project mentor or open an issue in this repository.
+This inference accelerator is built using three key components:
+
+### 1. `nn_controller.vhd`
+The main controller and the "brain" of the design. It contains the Finite-State Machine (FSM) that sequences all operations, manages the data flow, and controls the other modules.
+
+### 2. `mac_unit.vhd`
+The mathematical core of the accelerator. The Multiply-Accumulate unit performs the essential `(input * weight) + bias` calculations needed for the dot product operations within each neuron.
+
+### 3. `relu_activation.vhd`
+This module applies the non-linear ReLU (Rectified Linear Unit) activation function (`output = max(0, input)`). This is a critical step that allows the network to model complex relationships in the data.
+
+---
+
+## 🏗️ Architecture and Dataflow
+
+The controller's FSM is designed to correctly handle the multi-step process of calculating a neuron's output:
+
+- `S_IDLE`: Waits for the start signal to begin a new prediction.
+- `S_FETCH_X`: Latches the 3-byte input vector from the `input_data` port.
+- `S_MAC_H_LOOP`: Loops for 3 clock cycles. On each cycle, it uses the `mac_units` to perform one step of the dot product calculation for all 4 hidden layer neurons.
+- `S_ACT_H`: Applies the ReLU activation to the final results of the hidden layer.
+- `S_MAC_Y_LOOP`: Loops for 4 clock cycles. It uses the `mac_units` to calculate the dot product for the 2 output neurons, using the results from the hidden layer as its input.
+- `S_ACT_Y`: Applies the final ReLU activation to the output layer.
+- `S_WRITE_Y`: Places the final 2-byte prediction onto the `output_data` bus and pulses the `valid_out` signal high for one cycle to indicate the result is ready.
+
+The FSM then returns to `S_IDLE`.
+
+---
+
+## 💡 How to Simulate
+
+### 1. Set Top-Level Entity
+In **Quartus**, ensure the top-level entity for synthesis is:
+
