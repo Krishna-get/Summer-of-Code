@@ -1,4 +1,4 @@
-# 🧠 VHDL Hardware Acceleration for AI  
+#  VHDL Hardware Acceleration for AI  
 ### A Summer of Science Project at IIT Bombay
 
 This repository documents the complete journey of designing, implementing, and verifying a **learning‑capable neural network accelerator** in **VHDL**. From foundational digital logic to a full training+inference engine, and capped with an architectural study of Google’s TPU v1, this project bridges academic design and industry‑grade AI hardware.
@@ -89,7 +89,6 @@ This repository documents the complete journey of designing, implementing, and v
 clk, rst, start, input_data, target_output, train_mode
 
 3. **Simulation Steps**  
-- **Clean**: `Project → Clean`  
 - **Compile**: `Processing → Start Compilation` (0 errors/warnings)  
 - **Launch RTL Simulation**: `Tools → Run Simulation Tool → RTL Simulation`
 
@@ -102,17 +101,3 @@ Add the following signals from the `uut` instance:
 - `training_complete` (pulse indicating end of training cycle)
 
 ---
-
-## 📂 Project File Structure
-
-```plaintext
-├── NAND_pkg.vhd              # Universal NAND & derived gates
-├── combinational/            # Full adders, subtractors, MUXes, etc.
-├── sequential/               # D‑flip‑flops, registers, sequence detectors
-├── nn_controller.vhd         # Main FSM & orchestrator
-├── mac_unit.vhd              # Multiply‑Accumulate core
-├── relu_activation.vhd       # ReLU activation logic
-├── error_calculator.vhd      # Error calculation & derivative logic
-├── weight_updater.vhd        # Gradient‑descent weight update logic
-├── nn_controller_tb.vhd      # Testbench for full inference + training cycles
-└── README.md                 # This document
